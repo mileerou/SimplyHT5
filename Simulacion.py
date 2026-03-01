@@ -1,6 +1,6 @@
 """
 HDT5: Simulación de corrida de programas
-Yu-Fong Chen (242115) y Milena Rodriguez ()
+Yu-Fong Chen (242115) y Milena Rodriguez (251027)
 """
 
 import sympy
