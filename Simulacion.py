@@ -12,16 +12,17 @@ import matplotlib.pyplot as plt         # Para hacer las gráficas
 # Parámetros modificables
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-random_seed = 64                        # Semilla para generar la misma secuencia
-memoria_ram = 100                       # Memoria total disponible en RAM
-velocidad_cpu = 3                       # Instrucciones por unidad de tiempo
-unidad_tiempo = 1                      # Duración de la unidad de tiempo de CPU
-intervalo = 1                          # Intervalo promedio entre llegadas
+random_seed = 64                        # Semilla para generar la misma secuencia (Pred. 64)
+memoria_ram = 100                       # Memoria total disponible en RAM (Pred. 100)
+velocidad_cpu = 3                       # Instrucciones por unidad de tiempo (Pred. 3)
+unidad_tiempo = 1                      # Duración de la unidad de tiempo de CPU (Pred. 1)
+intervalo = 10                          # Intervalo promedio entre llegadas (Pred. 10)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def proceso(env, nombre, cpu, ram, tiempos):
     """
+    Ciclo de vida de un proceso en el sistema.
     (1) NEW -> (se le asigna RAM) -> (2) READY -> (espera al CPU)
      -> (3) RUNNING -> (I/O o espera evento) -> (4) TERMINATED
     """
@@ -55,6 +56,7 @@ def generador_procesos(env, cpu, ram, numero_procesos, tiempos):
 def simulacion(numero_procesos):
     random.seed(random_seed)
     env = sim.Environment()
+    # \/ Para cambiar el número de procesadores, cambiar el capacity (pred. capacity = 1)
     cpu = sim.Resource(env, capacity=1)
     ram = sim.Container(env, init=memoria_ram, capacity=memoria_ram)
     tiempos = []
