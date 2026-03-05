@@ -3,7 +3,7 @@ HDT5: Simulación de corrida de programas
 Yu-Fong Chen (242115) y Milena Rodriguez (251027)
 """
 
-import sympy
+import sympy as sp
 import random
 import statistics
 import matplotlib.pyplot as plt         # Para hacer las gráficas
@@ -52,7 +52,58 @@ def proceso ():
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+def generador_procesos(env, cpu, ram, numero_procesos, tiempos):    #sistema que envía procesos a la CPU y Ram
+    for i in range(numero_procesos):
+        env.process(proceso(env, f'Proceso {i}', cpu, ram, tiempos))
+        intervalo = random.expovariate(1.0 / sp.Interval)
+        yield env.timeout(intervalo)
 
+def simulacion(numero_procesos):
+    random.seed(sp.Randomseed)
+    env = sp.Environment()
+    cpu = sp.Resource(env, velocidad_cpu)
+    ram = sp.Container(env, init=sp.RAMcapacity, capacity=sp.RAMcapacity)
+    tiempos = []
+    
+    env.process(generador_procesos(env, cpu, ram, numero_procesos, tiempos))
+    env.run()
+    return tiempos
+
+casos = [25, 50, 100, 150, 200]
+promedios = []
+desv_std = []
+
+print(f"{'Procesos':>10} {'Promedio':>12} {'Desv. Std':>12}")
+print("-" * 38)
+
+for n in casos:
+    tiempos = simulacion(n)
+    media = statistics.mean(tiempos)
+    std = statistics.stdev(tiempos) if len(tiempos) > 1 else 0
+    promedios.append(media)
+    desv_std.append(std)
+    print(f"{n:>10} {media:>12.2f} {std:>12.2f}")
+
+#Gráficas
+
+fig, ax = plt.subplots(figsize=(8, 5))
+
+ax.errorbar(
+    casos, promedios,
+    yerr=desv_std,
+    marker='o', linewidth=2, capsize=5,
+    color = 'lavenderblush', ecolor= 'orchid', label='Tiempo promedio ± desv. std'
+)
+
+ax.set_xlabel("Número de procesos", fontsize=12)
+ax.set_ylabel("Tiempo promedio en el sistema", fontsize=12)
+ax.set_title("Tiempo promedio en el sistema vs Número de procesos", fontsize=14)
+ax.set_xticks(casos)
+ax.legend()
+ax.grid(True, linestyle='--', alpha=0.5)
+
+plt.tight_layout()
+plt.show()
 
 
 # FIN DE PROGRAMA
