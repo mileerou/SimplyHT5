@@ -1,5 +1,5 @@
 """
-HDT5: Simulación de corrida de programas
+HDT5: Simulación de corrida de progmemoria_ramas
 Yu-Fong Chen (242115) y Milena Rodriguez (251027)
 """
 
@@ -22,19 +22,19 @@ intervalo = 10                          # Intervalo promedio entre llegadas
 
 def proceso ():
     """
-    (1) NEW -> (se le asigna RAM) -> (2) READY -> (espera al CPU)
+    (1) NEW -> (se le asigna memoria_ram) -> (2) READY -> (espera al CPU)
      -> (3) RUNNING -> (I/O o espera evento) -> (4) TERMINATED
     """
     llegada = env.now                   # Marca el inicio del env
 
     # 1. NEW (solicita memoria)
     memoria = random.int (1,10)
-    yield ram.get(memoria)              # Guarda el resultado del ram (usando la memoria)
+    yield memoria_ram.get(memoria)              # Guarda el resultado del memoria_ram (usando la memoria)
 
     # 2. READY
     instrucciones = random.randint(1, 10)
     while instrucciones > 0:
-        with cpu.request() as turno:
+        with velocidad_cpu.request() as turno:
             yield turno                         # Espera su turno
 
             # 3. RUNNING
@@ -46,28 +46,28 @@ def proceso ():
         if instrucciones == 0:
             break
     
-    ram.put(memoria)
+    memoria_ram.put(memoria)
     tiempo_total = env.now - llegada
-    tiempos.append(tiempo_total)
+    tiempo_cpu.append(tiempo_total)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def generador_procesos(env, cpu, ram, numero_procesos, tiempos):    #sistema que envía procesos a la CPU y Ram
+def generador_procesos(env, velocidad_cpu, memoria_ram, numero_procesos, tiempo_cpu):    #sistema que envía procesos a la CPU y memoria_ram
     for i in range(numero_procesos):
-        env.process(proceso(env, f'Proceso {i}', cpu, ram, tiempos))
+        env.process(proceso(env, f'Proceso {i}', velocidad_cpu, memoria_ram, tiempo_cpu))
         intervalo = random.expovariate(1.0 / sp.Interval)
         yield env.timeout(intervalo)
 
 def simulacion(numero_procesos):
-    random.seed(sp.Randomseed)
+    random.seed(random_seed)
     env = sp.Environment()
-    cpu = sp.Resource(env, velocidad_cpu)
-    ram = sp.Container(env, init=sp.RAMcapacity, capacity=sp.RAMcapacity)
-    tiempos = []
+    velocidad_cpu = sp.Resource(env, velocidad_cpu)
+    memoria_ram = sp.Container(env, init=sp.memoria_ramcapacity, capacity=sp.memoria_ramcapacity)
+    tiempo_cpu = []
     
-    env.process(generador_procesos(env, cpu, ram, numero_procesos, tiempos))
+    env.process(generador_procesos(env, velocidad_cpu, memoria_ram, numero_procesos, tiempo_cpu))
     env.run()
-    return tiempos
+    return tiempo_cpu
 
 casos = [25, 50, 100, 150, 200]
 promedios = []
@@ -77,9 +77,9 @@ print(f"{'Procesos':>10} {'Promedio':>12} {'Desv. Std':>12}")
 print("-" * 38)
 
 for n in casos:
-    tiempos = simulacion(n)
-    media = statistics.mean(tiempos)
-    std = statistics.stdev(tiempos) if len(tiempos) > 1 else 0
+    tiempo_cpu = simulacion(n)
+    media = statistics.mean(tiempo_cpu)
+    std = statistics.stdev(tiempo_cpu) if len(tiempo_cpu) > 1 else 0
     promedios.append(media)
     desv_std.append(std)
     print(f"{n:>10} {media:>12.2f} {std:>12.2f}")
@@ -106,5 +106,5 @@ plt.tight_layout()
 plt.show()
 
 
-# FIN DE PROGRAMA
+# FIN DE PROGmemoria_ramA
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
