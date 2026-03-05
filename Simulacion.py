@@ -1,9 +1,9 @@
 """
-HDT5: Simulación de corrida de progmemoria_ramas
+HDT5: Simulación de corrida de programas
 Yu-Fong Chen (242115) y Milena Rodriguez (251027)
 """
 
-import sympy as sp
+import simpy as sim
 import random
 import statistics
 import matplotlib.pyplot as plt         # Para hacer las gráficas
@@ -13,98 +13,72 @@ import matplotlib.pyplot as plt         # Para hacer las gráficas
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 random_seed = 64                        # Semilla para generar la misma secuencia
-memoria_ram = 100                       # Memoria total
-velocidad_cpu = 3                       # Instrucciones por unidad de tiempo
-tiempo_cpu = 1                          # Unidad de tiempo
-intervalo = 10                          # Intervalo promedio entre llegadas
+memoria_ram = 100                       # Memoria total disponible en RAM
+velocidad_cpu = 3                       # instrucciones por unidad de tiempo
+unidad_tiempo = 1                      # duración de la unidad de tiempo de CPU
+intervalo = 10                          # intervalo promedio entre llegadas
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def proceso ():
-    """
-    (1) NEW -> (se le asigna memoria_ram) -> (2) READY -> (espera al CPU)
-     -> (3) RUNNING -> (I/O o espera evento) -> (4) TERMINATED
-    """
-    llegada = env.now                   # Marca el inicio del env
-
-    # 1. NEW (solicita memoria)
-    memoria = random.int (1,10)
-    yield memoria_ram.get(memoria)              # Guarda el resultado del memoria_ram (usando la memoria)
-
-    # 2. READY
+def proceso(env, nombre, cpu, ram, tiempos):
+    """Ciclo de vida de un proceso en el sistema."""
+    llegada = env.now
+    memoria = random.randint(1, 10)
+    yield ram.get(memoria)
     instrucciones = random.randint(1, 10)
     while instrucciones > 0:
-        with velocidad_cpu.request() as turno:
-            yield turno                         # Espera su turno
-
-            # 3. RUNNING
-            yield env.timeout(tiempo_cpu)                       # Usa el env por la unidad de tiempo
-            ejecutadas = min(velocidad_cpu,instrucciones)       # Consigue el mínimo de instrucciones que sí se realizaron
-            instrucciones -= ejecutadas                         # Le resta al total de instrucciones por completar, las que se completaron
-        
-        # 4. TERMINATED
+        with cpu.request() as turno:
+            yield turno
+            yield env.timeout(unidad_tiempo)
+            ejecutadas = min(velocidad_cpu, instrucciones)
+            instrucciones -= ejecutadas
         if instrucciones == 0:
             break
-    
-    memoria_ram.put(memoria)
-    tiempo_total = env.now - llegada
-    tiempo_cpu.append(tiempo_total)
+    ram.put(memoria)
+    tiempos.append(env.now - llegada)
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def generador_procesos(env, velocidad_cpu, memoria_ram, numero_procesos, tiempo_cpu):    #sistema que envía procesos a la CPU y memoria_ram
+def generador_procesos(env, cpu, ram, numero_procesos, tiempos):
     for i in range(numero_procesos):
-        env.process(proceso(env, f'Proceso {i}', velocidad_cpu, memoria_ram, tiempo_cpu))
-        intervalo = random.expovariate(1.0 / sp.Interval)
-        yield env.timeout(intervalo)
+        env.process(proceso(env, f"Proceso {i}", cpu, ram, tiempos))
+        intervalo_siguiente = random.expovariate(1.0 / intervalo)
+        yield env.timeout(intervalo_siguiente)
+
 
 def simulacion(numero_procesos):
     random.seed(random_seed)
-    env = sp.Environment()
-    velocidad_cpu = sp.Resource(env, velocidad_cpu)
-    memoria_ram = sp.Container(env, init=sp.memoria_ramcapacity, capacity=sp.memoria_ramcapacity)
-    tiempo_cpu = []
-    
-    env.process(generador_procesos(env, velocidad_cpu, memoria_ram, numero_procesos, tiempo_cpu))
+    env = sim.Environment()
+    cpu = sim.Resource(env, capacity=1)
+    ram = sim.Container(env, init=memoria_ram, capacity=memoria_ram)
+    tiempos = []
+    env.process(generador_procesos(env, cpu, ram, numero_procesos, tiempos))
     env.run()
-    return tiempo_cpu
-
-casos = [25, 50, 100, 150, 200]
-promedios = []
-desv_std = []
-
-print(f"{'Procesos':>10} {'Promedio':>12} {'Desv. Std':>12}")
-print("-" * 38)
-
-for n in casos:
-    tiempo_cpu = simulacion(n)
-    media = statistics.mean(tiempo_cpu)
-    std = statistics.stdev(tiempo_cpu) if len(tiempo_cpu) > 1 else 0
-    promedios.append(media)
-    desv_std.append(std)
-    print(f"{n:>10} {media:>12.2f} {std:>12.2f}")
-
-#Gráficas
-
-fig, ax = plt.subplots(figsize=(8, 5))
-
-ax.errorbar(
-    casos, promedios,
-    yerr=desv_std,
-    marker='o', linewidth=2, capsize=5,
-    color = 'lavenderblush', ecolor= 'orchid', label='Tiempo promedio ± desv. std'
-)
-
-ax.set_xlabel("Número de procesos", fontsize=12)
-ax.set_ylabel("Tiempo promedio en el sistema", fontsize=12)
-ax.set_title("Tiempo promedio en el sistema vs Número de procesos", fontsize=14)
-ax.set_xticks(casos)
-ax.legend()
-ax.grid(True, linestyle='--', alpha=0.5)
-
-plt.tight_layout()
-plt.show()
+    return tiempos
 
 
-# FIN DE PROGmemoria_ramA
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if __name__ == "__main__":
+    casos = [25, 50, 100, 150, 200]
+    promedios = []
+    desv_std = []
+    print(f"{'Procesos':>10} {'Promedio':>12} {'Desv. Std':>12}")
+    print("-" * 38)
+    for n in casos:
+        tiempos_res = simulacion(n)
+        media = statistics.mean(tiempos_res)
+        std = statistics.stdev(tiempos_res) if len(tiempos_res) > 1 else 0
+        promedios.append(media)
+        desv_std.append(std)
+        print(f"{n:>10} {media:>12.2f} {std:>12.2f}")
+
+    
+    fig, ax = plt.subplots(figsize=(8, 5))
+    
+    ax.errorbar(casos, promedios, yerr=desv_std, marker='o', linewidth=2, capsize=5, color='lavenderblush', ecolor='orchid', label='Tiempo promedio ± desv. std')
+    ax.set_xlabel("Número de procesos", fontsize=12)
+    ax.set_ylabel("Tiempo promedio en el sistema", fontsize=12)
+    ax.set_title("Tiempo promedio en el sistema vs Número de procesos", fontsize=14)
+    ax.set_xticks(casos)
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.show()
