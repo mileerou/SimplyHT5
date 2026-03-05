@@ -14,24 +14,31 @@ import matplotlib.pyplot as plt         # Para hacer las gráficas
 
 random_seed = 64                        # Semilla para generar la misma secuencia
 memoria_ram = 100                       # Memoria total disponible en RAM
-velocidad_cpu = 3                       # instrucciones por unidad de tiempo
-unidad_tiempo = 1                      # duración de la unidad de tiempo de CPU
-intervalo = 10                          # intervalo promedio entre llegadas
+velocidad_cpu = 3                       # Instrucciones por unidad de tiempo
+unidad_tiempo = 1                      # Duración de la unidad de tiempo de CPU
+intervalo = 1                          # Intervalo promedio entre llegadas
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def proceso(env, nombre, cpu, ram, tiempos):
-    """Ciclo de vida de un proceso en el sistema."""
+    """
+    (1) NEW -> (se le asigna RAM) -> (2) READY -> (espera al CPU)
+     -> (3) RUNNING -> (I/O o espera evento) -> (4) TERMINATED
+    """
     llegada = env.now
+    # 1. NEW (solicita memoria)
     memoria = random.randint(1, 10)
     yield ram.get(memoria)
+    # 2. READY
     instrucciones = random.randint(1, 10)
     while instrucciones > 0:
         with cpu.request() as turno:
             yield turno
+            # 3. RUNNING
             yield env.timeout(unidad_tiempo)
             ejecutadas = min(velocidad_cpu, instrucciones)
             instrucciones -= ejecutadas
+        # 4. TERMINATED
         if instrucciones == 0:
             break
     ram.put(memoria)
